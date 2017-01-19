@@ -25,7 +25,9 @@ FOLLY_CREATE_HAS_MEMBER_FN_TRAITS(container_emplace_back_traits, emplace_back);
 template <class Container, typename... Args>
 inline
 typename std::enable_if<
-    container_emplace_back_traits<Container, void(Args...)>::value>::type
+    container_emplace_back_traits<Container, void(Args...)>::value ||
+    container_emplace_back_traits<Container,
+        typename Container::iterator(Args...)>::value>::type
 container_emplace_back_or_push_back(Container& container, Args&&... args) {
   container.emplace_back(std::forward<Args>(args)...);
 }
@@ -33,7 +35,9 @@ container_emplace_back_or_push_back(Container& container, Args&&... args) {
 template <class Container, typename... Args>
 inline
 typename std::enable_if<
-    !container_emplace_back_traits<Container, void(Args...)>::value>::type
+    !container_emplace_back_traits<Container, void(Args...)>::value &&
+    !container_emplace_back_traits<Container,
+    typename Container::iterator(Args...)>::value>::type
 container_emplace_back_or_push_back(Container& container, Args&&... args) {
   using v = typename Container::value_type;
   container.push_back(v(std::forward<Args>(args)...));

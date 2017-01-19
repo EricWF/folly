@@ -23,9 +23,10 @@ using namespace folly;
 
 struct Node {
   size_t copies = 0;
-  Node() noexcept {}
+  size_t moves = 0;
+  Node() = default;
   Node(const Node& n) noexcept { copies = n.copies; ++copies; }
-  Node(Node&& n) noexcept { swap(copies, n.copies); ++copies; }
+  Node(Node&& n) noexcept { swap(copies, n.copies); ++moves; }
 };
 
 template <class T>
@@ -35,6 +36,20 @@ public:
   vector<T>& underlying;
   explicit VectorWrapper(vector<T>& v) : underlying(v) {}
   void push_back(const T& t) { underlying.push_back(t); }
+};
+
+template <class T>
+class Cpp17VectorWrapper {
+public:
+  using value_type = T;
+  using reference = T&;
+  vector<T>& underlying;
+  explicit Cpp17VectorWrapper(vector<T>& v) : underlying(v) {}
+  template <class ...Args>
+  reference emplace_back(Args&& ...args) {
+    underlying.emplace_back(std::forward<Args>(args)...);
+    return underlying.back();
+  }
 };
 
 TEST(ContainerTraits, WithoutEmplaceBack) {
@@ -47,5 +62,12 @@ TEST(ContainerTraits, WithoutEmplaceBack) {
 TEST(ContainerTraits, WithEmplaceBack) {
   vector<Node> v;
   container_emplace_back_or_push_back(v);
+  EXPECT_EQ(0, v.at(0).copies);
+}
+
+TEST(ContainerTraits, WithCpp17EmplaceBack) {
+  vector<Node> v;
+  Cpp17VectorWrapper<Node> vw(v);
+  container_emplace_back_or_push_back(vw);
   EXPECT_EQ(0, v.at(0).copies);
 }
